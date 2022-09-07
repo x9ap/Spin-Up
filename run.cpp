@@ -3,7 +3,6 @@
 /*    Author:       karod327                                                  */
 /*    Created:      Tuesday Sep 6 2022                                        */
 /*    Description:  Odometry Test                                             */
-/*    Credits:                                                                */
 /*----------------------------------------------------------------------------*/
 
 // ---- START VEXCODE CONFIGURED DEVICES ----
@@ -160,16 +159,27 @@ void TrackPOS() {
 /*                          Pre-Autonomous Functions                         */
 /*---------------------------------------------------------------------------*/
 void pre_auton( void ) {
+    Brain.Screen.print("Starting Vex Service...",2);
     vexcodeInit();
+    Brain.Screen.print("Vex Service Online.",3);
     Brain.resetTimer();
+    Brain.Screen.print("Timer Reset.",4);
+    Brain.Screen.print("Syncing Motors...",5);
     RightFront.resetRotation();
+    Brain.Screen.print("Right Front Primed...",6);
     RightBack.resetRotation();
+    Brain.Screen.print("Right Back Primed...",7);
     LeftFront.resetRotation();
+    Brain.Screen.print("Left Front Primed...",8);
     LeftBack.resetRotation();
+    Brain.Screen.print("Left Back Primed...",9);
 
     //SET VALUES FOR INITIAL ROBOT POSITION
     X = 0;
+    Brain.Screen.print("X Synced.",10);
     Y = 0;
+    Brain.Screen.print("Y Synced.",11);
+
 }
 /*---------------------------------------------------------------------------*/
 /*                              Autonomous Task                              */
@@ -181,6 +191,7 @@ void autonomous( void ) {
 /*                              User Control Task                             */
 /*----------------------------------------------------------------------------*/
 void usercontrol( void ) {
+  Brain.Screen.print("Initializing Input Service.",3);
   while (1){
     Brain.Screen.clearScreen();
 
@@ -197,9 +208,15 @@ void usercontrol( void ) {
   }
 }
 int main() {
+    Brain.Screen.print("Initializing...",1);
     pre_auton();
+    Brain.Screen.print("Initialized...",12);
+    wait(1, seconds);
+    Brain.Screen.clearScreen();
     Competition.autonomous( autonomous ); //Calls the autonomous function
+    Brain.Screen.print("Autonomous Service Started.",1);
     Competition.drivercontrol( usercontrol ); //Calls the driver control function
+    Brain.Screen.print("Driver Control Service Started.",2);
     while(1) {
       vex::task::sleep(5); //Slight delay so the Brain doesn't overprocess
     }
