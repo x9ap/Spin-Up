@@ -8,10 +8,8 @@
 // ---- START VEXCODE CONFIGURED DEVICES ----
 // Robot Configuration:
 // [Name]               [Type]        [Port(s)]
-// RightFront           motor         18              
-// RightBack            motor         17              
-// LeftFront            motor         20              
-// LeftBack             motor         14              
+// Right                motor         18                          
+// Left                 motor         20                         
 // Controller1          controller                    
 // ---- END VEXCODE CONFIGURED DEVICES ----
 
@@ -22,11 +20,10 @@ using namespace vex;
 vex::competition    Competition;
 /*-------------------------------Variables-----------------------------------*/
 #define Pi 3.14159265358979323846
-#define fieldscale 1.66548042705
-#define SL 5 //distance from tracking center to middle of left wheel
-#define SR 5 //distance from tracking center to middle of right wheel
-#define SS 7.75 //distance from tracking center to middle of the tracking wheel
-#define WheelDiam 4.125 //diameter of all the wheels being used for tracking
+#define fieldscale 1 //1.66548042705
+#define SL 4.9375 //distance from tracking center to middle of left wheel
+#define SR 4.9375 //distance from tracking center to middle of right wheel
+#define WheelDiam 4.1875 //diameter of all the wheels being used for tracking
 #define tpr 360  //Degrees per single encoder rotation
 double DeltaL,DeltaR,DeltaB,currentL,currentR,PreviousL,PreviousR,DeltaTheta,X,Y,Theta,DeltaXSide,DeltaYSide,SideChord,OdomHeading;
 /*---------------------------------------------------------------------------*/
@@ -40,8 +37,8 @@ void TrackPOS() {
 // Since it is a linear motion, the Left and right will move the same amount so we can just pick a side and do our movement calculation
 // Since this calculation is working based of very infinitely small arcs, the displacement of the robot will be a chord
 // Below it Averages the Left and Right integrated motor encoders since we don't have encoders yet
-  currentR = (RightFront.position(degrees) + RightBack.position(degrees)) / 2;
-  currentL = (LeftFront.position(degrees) + LeftBack.position(degrees)) / 2;
+  currentR = Right.position(degrees);
+  currentL = Left.position(degrees);
 
   //Creates variables for change in each side info in inches (12.9590697 is circumference of wheel)
   DeltaL = ((currentL - PreviousL) * 12.9590697) / tpr;
@@ -145,8 +142,8 @@ void TrackPOS() {
     Brain.Screen.setFillColor( vex::color(0,0,0) );
     
     //This draws the robot body for position and arm for angle
-    double yfieldvalue = ((-Y)*fieldscale)+245-10;
-    double xfieldvalue = ((-X)*fieldscale)+245;
+    double yfieldvalue = ((Y)*fieldscale)+245-10;
+    double xfieldvalue = ((X)*fieldscale)+245;
     Brain.Screen.drawCircle(xfieldvalue, yfieldvalue, 10 );
     Brain.Screen.setPenWidth( 4 );
     //Line angle calculation:
@@ -165,27 +162,50 @@ void pre_auton( void ) {
     Brain.resetTimer();
     Brain.Screen.print("Timer Reset.",4);
     Brain.Screen.print("Syncing Motors...",5);
-    RightFront.resetRotation();
+    Right.resetRotation();
     Brain.Screen.print("Right Front Primed...",6);
-    RightBack.resetRotation();
-    Brain.Screen.print("Right Back Primed...",7);
-    LeftFront.resetRotation();
-    Brain.Screen.print("Left Front Primed...",8);
-    LeftBack.resetRotation();
-    Brain.Screen.print("Left Back Primed...",9);
+    Left.resetRotation();
+    Brain.Screen.print("Left Front Primed...",7);
 
     //SET VALUES FOR INITIAL ROBOT POSITION
     X = 0;
-    Brain.Screen.print("X Synced.",10);
+    Brain.Screen.print("X Synced.",9);
     Y = 0;
-    Brain.Screen.print("Y Synced.",11);
+    Brain.Screen.print("Y Synced.",10);
 
 }
 /*---------------------------------------------------------------------------*/
 /*                              Autonomous Task                              */
 /*---------------------------------------------------------------------------*/
-void autonomous( void ) {
+void turnto(double theta) {
+  double turn_amount = theta - Theta;
+  if (turn_amount > 0) {
+    while (Theta != theta) { 
+      Left.spin(vex::directionType::rev, .2, vex::velocityUnits::pct);
+      Right.spin(vex::directionType::fwd, .2, vex::velocityUnits::pct);
+    }
+  }
+  if (turn_amount < 0) {
+    while (Theta != theta) { 
+      Left.spin(vex::directionType::fwd, .2, vex::velocityUnits::pct);
+      Right.spin(vex::directionType::rev, .2, vex::velocityUnits::pct);
+    }
+  }
+}
 
+void go(double x, double y) {
+  double x_rel = x - X;
+  double y_rel = y - Y;
+  turnto(atan2(y_rel, x_rel));
+  while ((X != x) && (Y != y)) {
+    Left.spin(vex::directionType::rev, 1, vex::velocityUnits::pct);
+    Right.spin(vex::directionType::rev, 1, vex::velocityUnits::pct);
+  }
+}
+
+void autonomous( void ) {
+  go(4,3);
+  turnto(0);
 }
 /*----------------------------------------------------------------------------*/
 /*                              User Control Task                             */
@@ -196,11 +216,13 @@ void usercontrol( void ) {
     Brain.Screen.clearScreen();
 
     //provides power to the motors to allow for movement of robot for testing using controller
-    LeftBack.spin(vex::directionType::fwd, ((Controller1.Axis3.value() + (Controller1.Axis1.value())*0.1)), vex::velocityUnits::pct);
-    LeftFront.spin(vex::directionType::fwd, ((Controller1.Axis3.value() + (Controller1.Axis1.value())*0.1)), vex::velocityUnits::pct);
-    RightBack.spin(vex::directionType::fwd, ((Controller1.Axis3.value() - (Controller1.Axis1.value())*0.1)), vex::velocityUnits::pct);
-    RightFront.spin(vex::directionType::fwd, ((Controller1.Axis3.value() - (Controller1.Axis1.value())*0.1)), vex::velocityUnits::pct);
+    Left.spin(vex::directionType::rev, ((Controller1.Axis3.value() + (Controller1.Axis1.value())*0.1)), vex::velocityUnits::pct);
+    Right.spin(vex::directionType::rev, ((Controller1.Axis3.value() - (Controller1.Axis1.value())*0.1)), vex::velocityUnits::pct);
     
+    if (Controller1.ButtonA.pressing()) {
+      autonomous();
+    }
+
     //Calls the TrackPosition function
     TrackPOS();
     Brain.Screen.render(); //push data to the LCD all at once to prevent image flickering
@@ -213,7 +235,7 @@ int main() {
     Brain.Screen.print("Initialized...",12);
     wait(1, seconds);
     Brain.Screen.clearScreen();
-    Competition.autonomous( autonomous ); //Calls the autonomous function
+    //Competition.autonomous( autonomous ); //Calls the autonomous function
     Brain.Screen.print("Autonomous Service Started.",1);
     Competition.drivercontrol( usercontrol ); //Calls the driver control function
     Brain.Screen.print("Driver Control Service Started.",2);
@@ -221,3 +243,4 @@ int main() {
       vex::task::sleep(5); //Slight delay so the Brain doesn't overprocess
     }
 }
+
